@@ -23,34 +23,26 @@ class StateMachineContext
     end
     
     def add_object
-        if @c_event.hash == '-'
-            puts "Added folder #{@c_event.path}"
-        else
-            puts "Added file #{@c_event.path}"
-        end
+        obj = 'file'
+        obj = 'folder' if @c_event.hash == '-'
+        puts "Added #{obj} #{@c_event.path}"
     end
     
     def del_object
         if @l_event.type == 'DEL'
-            if @l_event.hash == '-'
-                puts "Deleted folder #{@l_event.path}"
-            else
-                puts "Deleted file #{@l_event.path}"
-            end
+            obj = 'file'
+            obj = 'folder' if @c_event.hash == '-'
+                puts "Deleted #{obj} #{@l_event.path}"
         end
-        if @c_event.hash == '-'
-            puts "Deleted folder #{@c_event.path}"
-        else
-            puts "Deleted file #{@c_event.path}"
-        end
+        obj = 'file'
+        obj = 'folder' if @c_event.hash == '-'
+        puts "Deleted #{obj} #{@c_event.path}"
     end
     
     def move_object
-        if @c_event.hash == '-' && @l_event.hash == '-'
-            puts "Moved folder #{@l_event.path} -> #{@c_event.path}"
-        else
-            puts "Renamed file #{@l_event.path} -> #{@c_event.path}"
-        end
+        obj = 'file'
+        obj = 'folder' if @c_event.hash == '-' && @l_event.hash == '-'
+        puts "Moved #{obj} #{@l_event.path} -> #{@c_event.path}"
     end
 end
 
@@ -63,7 +55,6 @@ class FileEvent
         begin
             events = Integer(gets())
         rescue
-            puts 'Unknown event count'
             retry
         end
         
@@ -89,11 +80,8 @@ class FileEvent
             sm.context.l_event = sm.context.c_event 
             sm.context.c_event = @events[time][0]
 
-            if @events[time][0].type == 'ADD'
-                sm.add
-            elsif @events[time][0].type == 'DEL'
-                sm.del
-            end
+            sm.add if @events[time][0].type == 'ADD'
+            sm.del if @events[time][0].type == 'DEL'
         end
         
         if sm.state == :stage1
@@ -125,9 +113,5 @@ class FileEvent
     end
 end
 
-def main
-    fe = FileEvent.new
-    fe.run
-end
-
-main
+fe = FileEvent.new
+fe.run
