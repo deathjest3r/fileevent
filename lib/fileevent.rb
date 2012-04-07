@@ -6,12 +6,12 @@ require 'statemachine'
 class Event
     attr_reader :type, :time, :path, :hash
     
-    def initialize(*args)
-        if args.size == 1
-            @type = args[0][0]
-            @time = Integer(args[0][1])
-            @path = args[0][2]
-            @hash = args[0][3]
+    def initialize(event)
+        if event.size == 4
+            @type = event[0]
+            @time = Integer(event[1])
+            @path = event[2]
+            @hash = event[3]
         end
     end
 end
@@ -20,37 +20,29 @@ class StateMachineContext
     attr_accessor :c_event, :l_event
     
     def initialize
+        @c_event = Event.new(['',0,'',''])
     end
     
     def add_object
-        if @c_event.hash == '-'
-            puts "Added folder #{@c_event.path}"
-        else
-            puts "Added file #{@c_event.path}"
-        end
+        obj = 'file'
+        obj = 'folder' if @c_event.hash == '-'
+        puts "Added #{obj} #{@c_event.path}"
     end
     
     def del_object
+        obj = 'file'
         if @l_event.type == 'DEL'
-            if @l_event.hash == '-'
-                puts "Deleted folder #{@l_event.path}"
-            else
-                puts "Deleted file #{@l_event.path}"
-            end
+            obj = 'folder' if @l_event.hash == '-'
+            puts "Deleted #{obj} #{@l_event.path}"
         end
-        if @c_event.hash == '-'
-            puts "Deleted folder #{@c_event.path}"
-        else
-            puts "Deleted file #{@c_event.path}"
-        end
+        obj = 'folder' if @c_event.hash == '-'
+        puts "Deleted #{obj} #{@c_event.path}"
     end
     
     def move_object
-        if @c_event.hash == '-' && @l_event.hash == '-'
-            puts "Moved folder #{@l_event.path} -> #{@c_event.path}"
-        else
-            puts "Renamed file #{@l_event.path} -> #{@c_event.path}"
-        end
+        obj = 'file'
+        obj = 'folder 'if @c_event.hash == '-' && @l_event.hash == '-'
+        puts "Moved #{obj} #{@l_event.path} -> #{@c_event.path}"
     end
 end
 
@@ -60,43 +52,27 @@ class FileEvent
     end
         
     def run
+        sm = statemachine
+        
         begin
             events = Integer(gets())
         rescue
-            puts 'Unknown event count'
             retry
         end
         
         while(events > 0)
             event = Event.new(gets().split(' '))
-
-            if @events[event.time] == nil
-                @events[event.time] = [event] 
-            else
-                @events[event.time] << event
+            
+            sm.context.l_event = sm.context.c_event 
+            sm.context.c_event = event
+            
+            if sm.context.c_event.time > sm.context.l_event.time
+                sm.add if event.type == 'ADD'
+                sm.del if event.type == 'DEL'
             end
             events-=1
         end
         
-        exec_events
-    end
-        
-    def exec_events
-        sm = statemachine
-        
-        times = @events.keys.sort
-        times.each do |time|
-            sm.context.l_event = sm.context.c_event 
-            sm.context.c_event = @events[time][0]
-
-            if @events[time][0].type == 'ADD'
-                sm.add
-            elsif @events[time][0].type == 'DEL'
-                sm.del
-            end
-        end
-        
-        # When final event is del, handle it...
         if sm.state == :stage1
             sm.context.del_object
         end
@@ -118,17 +94,11 @@ class FileEvent
                 event :del, :stage0, :del_object
                 on_entry :move_object
             end
-            
-            
             context StateMachineContext.new
         end
         return sm
     end
 end
 
-def main
-    fe = FileEvent.new
-    fe.run
-end
-
-main
+fe = FileEvent.new
+fe.run
