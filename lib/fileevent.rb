@@ -6,12 +6,12 @@ require 'statemachine'
 class Event
     attr_reader :type, :time, :path, :hash
     
-    def initialize(*args)
-        if args.size == 1
-            @type = args[0][0]
-            @time = Integer(args[0][1])
-            @path = args[0][2]
-            @hash = args[0][3]
+    def initialize(event)
+        if args.size == 4
+            @type = args[0]
+            @time = Integer(args[1])
+            @path = args[2]
+            @hash = args[3]
         end
     end
 end
@@ -59,8 +59,11 @@ class FileEvent
         end
         
         while(events > 0)
-            event = Event.new(gets().split(' '))
-
+            begin
+                event = Event.new(gets().split(' '))
+            rescue
+            end
+                
             if @events[event.time] == nil
                 @events[event.time] = [event] 
             else
