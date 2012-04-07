@@ -96,7 +96,6 @@ class FileEvent
             end
         end
         
-        # When final event is del, handle it...
         if sm.state == :stage1
             sm.context.del_object
         end
