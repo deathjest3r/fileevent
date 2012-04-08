@@ -1,50 +1,23 @@
 #!/usr/bin/env ruby
+$: << File.expand_path(File.dirname(__FILE__) + "/../lib")
 
 require 'rubygems'
 require 'statemachine'
+require 'fileevent/eventmachine'
 
 class Event
     attr_reader :type, :time, :path, :hash
     
     def initialize(event)
-        if args.size == 4
-            @type = args[0]
-            @time = Integer(args[1])
-            @path = args[2]
-            @hash = args[3]
+        if event.size == 4
+            @type = event[0]
+            @time = Integer(event[1])
+            @path = event[2]
+            @hash = event[3]
         end
     end
 end
 
-class StateMachineContext
-    attr_accessor :c_event, :l_event
-    
-    def initialize
-    end
-    
-    def add_object
-        obj = 'file'
-        obj = 'folder' if @c_event.hash == '-'
-        puts "Added #{obj} #{@c_event.path}"
-    end
-    
-    def del_object
-        if @l_event.type == 'DEL'
-            obj = 'file'
-            obj = 'folder' if @c_event.hash == '-'
-                puts "Deleted #{obj} #{@l_event.path}"
-        end
-        obj = 'file'
-        obj = 'folder' if @c_event.hash == '-'
-        puts "Deleted #{obj} #{@c_event.path}"
-    end
-    
-    def move_object
-        obj = 'file'
-        obj = 'folder' if @c_event.hash == '-' && @l_event.hash == '-'
-        puts "Moved #{obj} #{@l_event.path} -> #{@c_event.path}"
-    end
-end
 
 class FileEvent
     def initialize
@@ -54,14 +27,16 @@ class FileEvent
     def run
         begin
             events = Integer(gets())
-        rescue
-            retry
+        rescue => e
+            puts "Error: #{e.message}"
+            return
         end
         
-        while(events > 0)
+        events.times do 
             begin
                 event = Event.new(gets().split(' '))
-            rescue
+            rescue => e
+                next
             end
                 
             if @events[event.time] == nil
@@ -69,17 +44,27 @@ class FileEvent
             else
                 @events[event.time] << event
             end
-            events-=1
         end
         
+        #sort_events
         exec_events
+    end
+    
+    def sort_events
+        @events.each do |time, event_array| 
+            if event_array.size > 1
+                event.array.each do
+                end
+            end
+        end
     end
         
     def exec_events
-        sm = statemachine
+        sm = EventMachine.new.sm
         
         times = @events.keys.sort
         times.each do |time|
+            next if @events[time] == nil 
             sm.context.l_event = sm.context.c_event 
             sm.context.c_event = @events[time][0]
 
@@ -92,28 +77,7 @@ class FileEvent
         end
     end
     
-    def statemachine
-        sm = Statemachine.build do
-            state :stage0 do
-                event :del, :stage1
-                event :add, :stage0, :add_object 
-            end
-            state :stage1 do
-                event :add, :stage2
-                event :del, :stage0, :del_object
-                
-            end
-            state :stage2 do
-                event :add, :stage0, :add_object
-                event :del, :stage0, :del_object
-                on_entry :move_object
-            end
-            
-            
-            context StateMachineContext.new
-        end
-        return sm
-    end
+    
 end
 
 fe = FileEvent.new
