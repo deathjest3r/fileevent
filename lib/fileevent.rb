@@ -3,6 +3,7 @@ $: << File.expand_path(File.dirname(__FILE__) + "/../lib")
 
 require 'rubygems'
 require 'statemachine'
+
 require 'fileevent/eventmachine'
 
 class Event
@@ -46,7 +47,6 @@ class FileEvent
             end
         end
         
-        #sort_events
         exec_events
     end
     
@@ -60,16 +60,20 @@ class FileEvent
     end
         
     def exec_events
-        sm = EventMachine.new.sm
+        sm = EventMachine.new.eventmachine
         
         times = @events.keys.sort
         times.each do |time|
             next if @events[time] == nil 
+            
             sm.context.l_event = sm.context.c_event 
             sm.context.c_event = @events[time][0]
+            
+            sm.verify @events[time]
+            sm.verified
 
-            sm.add if @events[time][0].type == 'ADD'
-            sm.del if @events[time][0].type == 'DEL'
+            #sm.add if @events[time][0].type == 'ADD'
+            #sm.del if @events[time][0].type == 'DEL'
         end
         
         if sm.state == :stage1
