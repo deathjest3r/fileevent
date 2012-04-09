@@ -1,41 +1,37 @@
+require 'fileevent/events'
 
 class EventMachineContext
-    attr_accessor :sm, :c_event, :l_event
+    attr_accessor :c_events, :l_events
     
     def initialize
+        @c_events = Events.new(Events::Event.new(['ADD',0,'/','-']))
     end
     
     def add_object
-        obj = 'file'
-        obj = 'folder' if @c_event.hash == '-'
-        puts "Added #{obj} #{@c_event.path}"
+        @c_events.each do |event|
+            obj = 'file'
+            obj = 'folder' if event.hash == '-'
+            puts "Added #{obj} #{event.path}"
+        end
     end
     
     def del_object
-        if @l_event.type == 'DEL'
+        @l_events.each do |event|
             obj = 'file'
-            obj = 'folder' if @c_event.hash == '-'
-            puts "Deleted #{obj} #{@l_event.path}"
+            obj = 'folder' if event.hash == '-'
+            puts "Deleted #{obj} #{event.path}"
         end
-        obj = 'file'
-        obj = 'folder' if @c_event.hash == '-'
-        puts "Deleted #{obj} #{@c_event.path}"
     end
     
     def move_object
-        obj = 'file'
-        obj = 'folder' if @c_event.hash == '-' && @l_event.hash == '-'
-        puts "Moved #{obj} #{@l_event.path} -> #{@c_event.path}"
-    end
-    
-    def verify_event(events)
-        if events.size > 1
+        if @c_events == @l_events
+            obj = 'folder'
+            puts "Moved #{obj} #{@l_events.root} -> #{@c_events.root}"
         else
-            @sm.del if events[0].type == 'ADD'
-            @sm.add if events[0].type == 'DEL'
+            del_object
+            add_object
         end
     end
-    
 end
 
 class EventMachine
@@ -44,29 +40,15 @@ class EventMachine
     def initialize
         @eventmachine = Statemachine.build do
             
-            superstate :operational do
-                state :stage0 do
-                    event :del, :stage1
-                    event :add, :stage0, :add_object 
-                end
-                state :stage1 do
-                    event :del, :stage0, :del_object
-                    event :add, :stage2
-                    
-                end
-                state :stage2 do
-                    event :add, :stage0, :add_object
-                    event :del, :stage0, :del_object
-                end
-                
-                event :verify, :stageV, :verify_event
+            state :stage0 do
+                event :del, :stage1
+                event :add, :stage0, :add_object 
             end
-            
-            trans :stageV, :verified, :operational_H
-            trans :stage1, :add, :stage2, :move_object
-            
+            state :stage1 do
+                event :del, :stage1, :del_object
+                event :add, :stage0, :move_object   
+            end
             context EventMachineContext.new
         end
-        @eventmachine.context.eventmachine = @eventmachine
     end
 end
