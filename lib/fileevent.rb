@@ -31,11 +31,13 @@ class FileEvent
             end
                             
             if new_event.time > @context.c_events.time
+                @em.add if @context.c_events.type == 'ADD'
+                @em.del if @context.c_events.type == 'DEL'
+                
                 @context.l_events = @context.c_events 
                 @context.c_events = Events.new(new_event)
                 
-                @em.add if @context.c_events.type == 'ADD'
-                @em.del if @context.c_events.type == 'DEL'
+                
     
             elsif @context.c_events.time == new_event.time 
                 @context.c_events << new_event
