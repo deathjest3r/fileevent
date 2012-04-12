@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+#file: fileevent.rb
+
 $: << File.expand_path(File.dirname(__FILE__) + "/../lib")
 
 require 'rubygems'
@@ -22,7 +24,7 @@ class FileEvent
             return
         end
         
-        events.times do 
+        events.times do |i|
             begin
                 new_event = Events::Event.new(gets().split(' '))
             rescue => e
@@ -36,13 +38,13 @@ class FileEvent
                 
                 @context.l_events = @context.c_events 
                 @context.c_events = Events.new(new_event)
-                
-                
-    
             elsif @context.c_events.time == new_event.time 
                 @context.c_events << new_event
             end            
         end
+        
+        @em.add if @context.c_events.type == 'ADD'
+        @em.del if @context.c_events.type == 'DEL'
         
         if @em.state == :stage1    
             @context.c_events.each do |event|
